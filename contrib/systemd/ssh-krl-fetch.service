@@ -1,0 +1,14 @@
+[Unit]
+Description=Fetch the SSH key revocation list
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/ssh-krl-fetch
+ExecStart=/usr/local/sbin/ssh-krl-fetch
+ProtectSystem=strict
+ReadWritePaths=/etc/ssh
+PrivateTmp=yes
+ProtectHome=yes
+NoNewPrivileges=yes

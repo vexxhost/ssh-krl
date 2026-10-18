@@ -1,0 +1,11 @@
+[Unit]
+Description=Fetch the SSH key revocation list every minute
+
+[Timer]
+OnBootSec=15s
+OnUnitActiveSec=1min
+RandomizedDelaySec=15s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,29 @@
+#!/bin/sh
+# Fetch the KRL published by ssh-krl and install it for sshd's RevokedKeys.
+# The current file is only replaced by a download that OpenSSH can parse; on
+# any failure the last good KRL stays in place.
+set -eu
+
+: "${SSH_KRL_URL:?SSH_KRL_URL is required}"
+DEST=${SSH_KRL_DEST:-/etc/ssh/revoked_keys}
+DIR=$(dirname "$DEST")
+TMP=$(mktemp "$DIR/.revoked_keys.XXXXXX")
+trap 'rm -f "$TMP"' EXIT
+
+if [ -s "$DEST" ]; then
+  curl -fsS --max-time 20 --retry 2 -z "$DEST" -o "$TMP" "$SSH_KRL_URL"
+else
+  curl -fsS --max-time 20 --retry 2 -o "$TMP" "$SSH_KRL_URL"
+fi
+
+# Not modified since the last fetch: curl leaves the file empty.
+[ -s "$TMP" ] || exit 0
+
+if ! ssh-keygen -Q -l -f "$TMP" >/dev/null 2>&1; then
+  echo "downloaded KRL does not parse; keeping $DEST" >&2
+  exit 1
+fi
+
+chmod 0644 "$TMP"
+mv -f "$TMP" "$DEST"
+trap - EXIT
