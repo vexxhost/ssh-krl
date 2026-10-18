@@ -320,3 +320,22 @@ func TestUnknownCA(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestETagIndependentOfGenerationTime(t *testing.T) {
+	src := &fakeSource{}
+	src.set(map[string]any{"key_id": "alice"})
+	a := New(Config{Source: src, Now: func() time.Time { return time.Unix(1000, 0) }, Logger: discard()})
+	b := New(Config{Source: src, Now: func() time.Time { return time.Unix(2000, 0) }, Logger: discard()})
+	for _, s := range []*Server{a, b} {
+		if err := s.Refresh(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if a.status().ETag != b.status().ETag {
+		t.Fatal("replicas with the same revocations publish different ETags")
+	}
+	rec := get(t, b.Handler(), "/krl", map[string]string{"If-None-Match": a.status().ETag})
+	if rec.Code != http.StatusNotModified {
+		t.Fatalf("conditional GET across replicas = %d, want 304", rec.Code)
+	}
+}
