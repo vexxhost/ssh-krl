@@ -185,9 +185,11 @@ func (s *Server) refresh(ctx context.Context) error {
 		version = s.version + 1
 	}
 	data := b.Marshal(version, now)
-	dataSum := sha256.Sum256(data)
 	s.data = data
-	s.etag = `"` + hex.EncodeToString(dataSum[:16]) + `"`
+	// The ETag depends only on the revocations, so replicas that generated
+	// the same list at different times agree and clients are not sent a copy
+	// they already hold.
+	s.etag = `"` + content[:32] + `"`
 	s.modTime = now
 	s.version = version
 	s.contentHash = content
