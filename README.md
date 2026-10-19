@@ -21,8 +21,8 @@ HTTP; hosts fetch it every minute with a small systemd timer.
   is read from its `public_key` endpoint.
 - Keeps serving the **last good KRL** if the source becomes unreachable or an
   entry is invalid, and reports it in `/status` and metrics.
-- Conditional requests (`ETag`, `If-Modified-Since`), so an idle fleet costs a
-  304 per host per minute.
+- Conditional requests (`ETag`, `If-Modified-Since`) for clients that use them;
+  the ETag is the same across replicas.
 - Authenticates with a token, Kubernetes service account, or AppRole.
 - Pure Go, no dependency on `ssh-keygen` at runtime; output is checked against
   OpenSSH's `ssh-keygen` and a real `sshd` in CI.

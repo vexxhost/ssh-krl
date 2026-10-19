@@ -10,20 +10,19 @@ DIR=$(dirname "$DEST")
 TMP=$(mktemp "$DIR/.revoked_keys.XXXXXX")
 trap 'rm -f "$TMP"' EXIT
 
-if [ -s "$DEST" ]; then
-  curl -fsS --max-time 20 --retry 2 -z "$DEST" -o "$TMP" "$SSH_KRL_URL"
-else
-  curl -fsS --max-time 20 --retry 2 -o "$TMP" "$SSH_KRL_URL"
-fi
-
-# Not modified since the last fetch: curl leaves the file empty.
-[ -s "$TMP" ] || exit 0
+# Always download: the list is small, and a conditional request based on the
+# local file's time would skip a list published before that file was created
+# (for example the empty KRL created when the host was set up).
+curl -fsS --max-time 20 --retry 2 -o "$TMP" "$SSH_KRL_URL"
 
 if ! ssh-keygen -Q -l -f "$TMP" >/dev/null 2>&1; then
   echo "downloaded KRL does not parse; keeping $DEST" >&2
   exit 1
 fi
 
+if cmp -s "$TMP" "$DEST"; then
+  exit 0
+fi
 chmod 0644 "$TMP"
 mv -f "$TMP" "$DEST"
 trap - EXIT
